@@ -1,0 +1,57 @@
+<view class="container">
+  <!-- 筛选栏 -->
+  <view class="filters">
+    <view class="filter-row">
+      <view class="model-filters">
+        <view class="filter-tag {{filterModel === '' ? 'active' : ''}}" data-value="" bindtap="onFilterModel">全部</view>
+        <view class="filter-tag {{filterModel === 'A' ? 'active' : ''}}" data-value="A" bindtap="onFilterModel">A型</view>
+        <view class="filter-tag {{filterModel === 'B' ? 'active' : ''}}" data-value="B" bindtap="onFilterModel">B型</view>
+        <view class="filter-tag {{filterModel === 'C' ? 'active' : ''}}" data-value="C" bindtap="onFilterModel">C型</view>
+      </view>
+    </view>
+    <view class="filter-row">
+      <picker mode="date" fields="day" bindchange="onFilterDate" value="{{filterDate}}">
+        <view class="date-picker">{{filterDate ? filterDate : '选择日期筛选'}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 记录列表 -->
+  <view wx:else class="list">
+    <view
+      class="record-card"
+      wx:for="{{records}}"
+      wx:key="_id"
+      data-id="{{item._id}}"
+      bindtap="goDetail"
+    >
+      <view class="card-header">
+        <text class="serial">#{{item.serialNumber}}</text>
+        <text class="model-badge model-{{item.batteryModel}}">{{item._modelLabel}}</text>
+      </view>
+      <view class="card-body">
+        <text class="qty">{{item.quantity}} 块</text>
+        <text class="commission">提成 ¥{{item.totalCommission}}</text>
+      </view>
+      <view class="card-footer">
+        <text class="customer">{{item.customerName || '未填客户'}}</text>
+        <text class="time">{{item._time}}</text>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{records.length === 0}}" class="empty">
+      <text>暂无销售记录</text>
+    </view>
+
+    <!-- 加载更多 -->
+    <view wx:if="{{pagination.page < pagination.totalPages}}" class="load-more">
+      <text>上拉加载更多</text>
+    </view>
+  </view>
+</view>

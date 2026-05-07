@@ -1,0 +1,52 @@
+<view class="container">
+  <!-- 消息列表 -->
+  <scroll-view class="msg-list" scroll-y scroll-with-animation upper-threshold="50">
+    <view class="msg-item {{msg.role === 'user' ? 'right' : 'left'}}" wx:for="{{messages}}" wx:key="index">
+      <view class="msg-bubble {{msg.role}}">
+        <!-- 文字消息 -->
+        <text class="msg-text">{{msg.text}}</text>
+
+        <!-- 表格区域 -->
+        <view wx:if="{{msg.table}}" class="table-wrap">
+          <view class="table-title">{{msg.table.title}}</view>
+          <view class="table-grid">
+            <!-- 表头 -->
+            <view class="table-row header">
+              <view class="table-cell" wx:for="{{msg.table.headers}}" wx:key="index">{{item}}</view>
+            </view>
+            <!-- 数据行 -->
+            <view class="table-row" wx:for="{{msg.table.rows}}" wx:key="index">
+              <view class="table-cell" wx:for="{{item}}" wx:key="index">{{item}}</view>
+            </view>
+            <!-- 表尾 -->
+            <view wx:if="{{msg.table.footer}}" class="table-row footer">
+              <view class="table-cell" wx:for="{{msg.table.footer}}" wx:key="index">{{item}}</view>
+            </view>
+          </view>
+        </view>
+
+        <text class="msg-time">{{msg.time}}</text>
+      </view>
+    </view>
+    <view id="msg-end"></view>
+  </scroll-view>
+
+  <!-- 输入栏 -->
+  <view class="input-bar">
+    <input
+      class="input-field"
+      type="text"
+      placeholder="点这里说话或打字记账..."
+      value="{{input}}"
+      bindinput="onInput"
+      bindconfirm="onConfirm"
+      disabled="{{sending}}"
+    />
+    <button
+      class="send-btn {{sending || !input.trim() ? 'disabled' : ''}}"
+      size="mini"
+      bindtap="send"
+      disabled="{{sending || !input.trim()}}"
+    >{{sending ? '...' : '发送'}}</button>
+  </view>
+</view>

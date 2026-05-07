@@ -1,0 +1,24 @@
+{
+  "name": "openclaw-agent",
+  "version": "1.0.0",
+  "description": "OpenClaw AI Chat Agent using CloudBase AI models with 100M WeChat Developer tokens",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js",
+    "deploy:function": "echo 'Use MCP tools to deploy function'",
+    "deploy:cloudrun": "echo 'Use MCP tools to deploy cloudrun'"
+  },
+  "keywords": [
+    "ai",
+    "chat",
+    "agent",
+    "openclaw",
+    "cloudbase",
+    "wechat"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.1"
+  }
+}

@@ -1,0 +1,77 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 详情内容 -->
+  <view wx:else class="content">
+    <view class="detail-card">
+      <view class="detail-row">
+        <text class="label">编号</text>
+        <text class="value">#{{record.serialNumber}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">型号</text>
+        <text class="value model-{{record.batteryModel}}">{{record._modelLabel}}</text>
+      </view>
+
+      <!-- 编辑模式 -->
+      <block wx:if="{{editing}}">
+        <view class="detail-row">
+          <text class="label">数量</text>
+          <input class="edit-input" type="number" value="{{editQuantity}}" bindinput="onQtyInput" />
+        </view>
+        <view class="detail-row">
+          <text class="label">客户</text>
+          <input class="edit-input" value="{{editCustomer}}" bindinput="onCustomerInput" />
+        </view>
+        <view class="detail-row">
+          <text class="label">备注</text>
+          <input class="edit-input" value="{{editNotes}}" bindinput="onNotesInput" />
+        </view>
+      </block>
+
+      <!-- 查看模式 -->
+      <block wx:else>
+        <view class="detail-row">
+          <text class="label">数量</text>
+          <text class="value">{{record.quantity}} 块</text>
+        </view>
+        <view class="detail-row">
+          <text class="label">提成</text>
+          <text class="value commission">¥{{record.totalCommission}}（{{record.commissionPer}}元/块）</text>
+        </view>
+        <view class="detail-row">
+          <text class="label">客户</text>
+          <text class="value">{{record.customerName || '未填写'}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="label">备注</text>
+          <text class="value">{{record.notes || '无'}}</text>
+        </view>
+      </block>
+
+      <view class="detail-row">
+        <text class="label">来源</text>
+        <text class="value source-{{record.source}}">{{record.source === 'wechat' ? '微信' : 'API'}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">上报时间</text>
+        <text class="value">{{record._reportTime}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="label">创建时间</text>
+        <text class="value">{{record._createdAt}}</text>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="actions">
+      <button wx:if="{{!editing}}" class="action-btn edit" bindtap="toggleEdit">编辑</button>
+      <button wx:if="{{editing}}" class="action-btn save" bindtap="saveEdit">保存修改</button>
+      <button wx:if="{{editing}}" class="action-btn cancel" bindtap="toggleEdit">取消</button>
+      <button wx:if="{{!editing}}" class="action-btn delete" bindtap="deleteRecord">删除记录</button>
+    </view>
+  </view>
+</view>

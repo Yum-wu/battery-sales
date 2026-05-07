@@ -1,0 +1,52 @@
+<view class="container">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading">
+    <view class="loading-icon">⟳</view>
+    <text>加载中...</text>
+  </view>
+
+  <!-- 统计数据 -->
+  <view wx:else class="content">
+    <view class="summary-grid">
+      <view class="summary-card total-qty">
+        <text class="card-label">总销量</text>
+        <text class="card-value">{{stats.totalQuantity || 0}}</text>
+        <text class="card-unit">块</text>
+      </view>
+      <view class="summary-card total-comm">
+        <text class="card-label">总提成</text>
+        <text class="card-value">{{stats.totalCommission || 0}}</text>
+        <text class="card-unit">元</text>
+      </view>
+      <view class="summary-card today-qty">
+        <text class="card-label">今日销量</text>
+        <text class="card-value">{{todayQuantity}}</text>
+        <text class="card-unit">块</text>
+      </view>
+      <view class="summary-card avg">
+        <text class="card-label">平均每笔</text>
+        <text class="card-value">{{avgQuantity}}</text>
+        <text class="card-unit">块</text>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">各型号销量</text>
+      <view class="model-row" wx:for="{{['A','B','C']}}" wx:key="item">
+        <text class="model-label">型号 {{item}}</text>
+        <view class="model-bar-wrap">
+          <view class="model-bar model-bar-{{item}}" style="width: {{modelData[item] / maxQty * 100}}%"></view>
+        </view>
+        <text class="model-count">{{modelData[item]}}</text>
+      </view>
+    </view>
+
+    <!-- 快捷操作 -->
+    <!-- 核心入口 — 语音记账 -->
+    <view class="main-entry" bindtap="goChat">
+      <text class="entry-icon">🎤</text>
+      <text class="entry-text">点这里 说话记账</text>
+      <text class="entry-desc">说出销售情况，小电自动帮你记录</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,61 @@
+<view class="container">
+  <view class="form-section">
+    <text class="form-label">电池型号</text>
+    <view class="model-selector">
+      <view
+        class="model-option {{selectedModel === item.value ? 'active' : ''}}"
+        wx:for="{{models}}"
+        wx:key="value"
+        data-value="{{item.value}}"
+        bindtap="selectModel"
+      >
+        <text class="model-name">{{item.label}}</text>
+        <text class="model-desc">{{item.desc}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="form-section">
+    <text class="form-label">数量（块）</text>
+    <input
+      class="form-input"
+      type="number"
+      placeholder="请输入数量"
+      value="{{quantity}}"
+      bindinput="onQuantityInput"
+    />
+  </view>
+
+  <view class="form-section">
+    <text class="form-label">客户（选填）</text>
+    <input
+      class="form-input"
+      placeholder="输入客户名称"
+      value="{{customerName}}"
+      bindinput="onCustomerInput"
+    />
+  </view>
+
+  <view class="form-section">
+    <text class="form-label">备注（选填）</text>
+    <input
+      class="form-input"
+      placeholder="如：月底结款"
+      value="{{notes}}"
+      bindinput="onNotesInput"
+    />
+  </view>
+
+  <view class="commission-hint" wx:if="{{commissionPreview > 0}}">
+    <text>💰 提成计算：{{quantity}} × 50元 = {{commissionPreview}} 元</text>
+  </view>
+
+  <button
+    class="submit-btn {{submitting ? 'disabled' : ''}}"
+    type="primary"
+    disabled="{{submitting}}"
+    bindtap="submit"
+  >
+    {{submitting ? '提交中...' : '确认记账'}}
+  </button>
+</view>

@@ -1,0 +1,37 @@
+{
+  "envId": "your-cloudbase-env-id",
+  "version": "2.0",
+  "functionRoot": "./",
+  "functions": [
+    {
+      "name": "openclaw-agent",
+      "timeout": 900,
+      "envVariables": {},
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "installDependency": true,
+      "ignore": [
+        "node_modules",
+        "node_modules/**/*",
+        ".env",
+        ".git",
+        ".gitignore",
+        "README.md",
+        "cloudbaserc.json"
+      ]
+    }
+  ],
+  "cloudrun": [
+    {
+      "name": "openclaw-agent",
+      "cpu": 0.25,
+      "mem": 0.5,
+      "minNum": 1,
+      "maxNum": 10,
+      "containerPort": 9000,
+      "dockerfilePath": "./Dockerfile",
+      "buildDir": "./",
+      "envVariables": {}
+    }
+  ]
+}
