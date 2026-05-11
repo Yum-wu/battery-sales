@@ -2,7 +2,7 @@ const user = require('./utils/user');
 
 App({
   globalData: {
-    apiBaseUrl: 'https://hermes-d7gvpvoah15874de5.service.tcloudbase.com',
+    apiBaseUrl: 'https://hermes-d7gvpvoah15874de5.service.tcloudbase.com', // 部署时替换为真实环境域名
     currentUser: null
   },
 
