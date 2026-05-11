@@ -1,5 +1,6 @@
 const api = require('../../utils/api');
 const util = require('../../utils/util');
+const app = getApp();
 
 Page({
   data: {
@@ -7,13 +8,23 @@ Page({
     loading: true,
     pagination: { page: 1, totalPages: 1 },
     filterModel: '',
-    filterDate: ''
+    filterDate: '',
+    userRole: 'salesperson',
+    roleName: '销售员',
+    scopeLabel: '我的记录'
   },
 
   onShow() {
-    if (this.data.records.length === 0) {
-      this.loadSales(1);
+    // 获取用户角色
+    const user = app.getUser();
+    if (user) {
+      this.setData({
+        userRole: user.role,
+        roleName: user.roleName,
+        scopeLabel: user.role === 'boss' ? '全部记录' : '我的记录'
+      });
     }
+    this.loadSales(1);
   },
 
   onPullDownRefresh() {
@@ -31,6 +42,13 @@ Page({
       query.endDate = filterDate;
     }
 
+    // 销售员只能看自己的记录
+    const user = app.getUser();
+    if (user && user.role !== 'boss') {
+      query._openid = user.openid;
+    }
+    query._role = user ? user.role : 'salesperson';
+
     try {
       const result = await api.getSales(query);
       let records = result?.data || [];
@@ -39,7 +57,9 @@ Page({
       records = records.map(r => ({
         ...r,
         _time: util.formatTime(r.reportTime),
-        _modelLabel: util.getModelLabel(r.batteryModel)
+        _modelLabel: util.getModelLabel(r.batteryModel),
+        _modelClass: ['A', 'B', 'C'].includes(r.batteryModel) ? 'model-' + r.batteryModel : 'model-other',
+        _salespersonName: r._nickName || (r._openid ? '用户' : '未知')
       }));
 
       if (page === 1) {

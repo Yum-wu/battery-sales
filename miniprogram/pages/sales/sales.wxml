@@ -1,4 +1,10 @@
 <view class="container">
+  <!-- 角色标识 -->
+  <view class="scope-hint">
+    <text class="role-badge {{userRole}}">{{roleName}}</text>
+    <text class="scope-label">{{scopeLabel}}</text>
+  </view>
+
   <!-- 筛选栏 -->
   <view class="filters">
     <view class="filter-row">
@@ -32,7 +38,7 @@
     >
       <view class="card-header">
         <text class="serial">#{{item.serialNumber}}</text>
-        <text class="model-badge model-{{item.batteryModel}}">{{item._modelLabel}}</text>
+        <text class="model-badge {{item._modelClass}}">{{item._modelLabel}}</text>
       </view>
       <view class="card-body">
         <text class="qty">{{item.quantity}} 块</text>
@@ -40,6 +46,7 @@
       </view>
       <view class="card-footer">
         <text class="customer">{{item.customerName || '未填客户'}}</text>
+        <text class="salesperson">{{item._salespersonName}}</text>
         <text class="time">{{item._time}}</text>
       </view>
     </view>

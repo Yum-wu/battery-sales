@@ -1,12 +1,15 @@
 {
-  "envId": "your-cloudbase-env-id",
+  "envId": "hermes-d7gvpvoah15874de5",
   "version": "2.0",
   "functionRoot": "./",
   "functions": [
     {
       "name": "openclaw-agent",
       "timeout": 900,
-      "envVariables": {},
+      "envVariables": {
+        "WECHAT_APPID": "你的小程序AppID",
+        "WECHAT_SECRET": "你的小程序AppSecret"
+      },
       "runtime": "Nodejs18.15",
       "handler": "index.main",
       "installDependency": true,

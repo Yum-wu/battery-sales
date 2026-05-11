@@ -1,17 +1,28 @@
 const api = require('../../utils/api');
 const util = require('../../utils/util');
+const app = getApp();
 
 Page({
   data: {
     record: null,
     loading: true,
     editing: false,
-    editQuantity: '',
+    editModel: '',
     editCustomer: '',
-    editNotes: ''
+    editNotes: '',
+    userRole: 'salesperson',
+    canEdit: false
   },
 
   onLoad(options) {
+    // 判断权限
+    const user = app.getUser();
+    const canEdit = user && user.role === 'boss';
+    this.setData({
+      userRole: user ? user.role : 'salesperson',
+      canEdit
+    });
+
     if (options.id) {
       this.loadDetail(options.id);
     }
@@ -22,8 +33,10 @@ Page({
     try {
       const record = await api.getSale(id);
       record._modelLabel = util.getModelLabel(record.batteryModel);
+      record._modelClass = ['A', 'B', 'C'].includes(record.batteryModel) ? 'model-' + record.batteryModel : 'model-other';
       record._reportTime = util.formatTime(record.reportTime);
       record._createdAt = util.formatTime(record.createdAt);
+      record._salespersonName = record._nickName || (record._openid ? '用户' : '未知');
       this.setData({ record, loading: false });
     } catch (err) {
       util.showError('加载失败');
@@ -37,6 +50,7 @@ Page({
     if (!editing) {
       this.setData({
         editing: true,
+        editModel: record.batteryModel || '',
         editQuantity: String(record.quantity),
         editCustomer: record.customerName || '',
         editNotes: record.notes || ''
@@ -44,6 +58,10 @@ Page({
     } else {
       this.setData({ editing: false });
     }
+  },
+
+  onModelInput(e) {
+    this.setData({ editModel: e.detail.value });
   },
 
   onQtyInput(e) {
@@ -59,14 +77,18 @@ Page({
   },
 
   async saveEdit() {
-    const { record, editQuantity, editCustomer, editNotes } = this.data;
+    const { record, editModel, editQuantity, editCustomer, editNotes } = this.data;
     const qty = parseInt(editQuantity);
     if (!qty || qty <= 0) {
       return util.showError('请输入有效数量');
     }
+    if (!editModel.trim()) {
+      return util.showError('请输入电池型号');
+    }
 
     try {
       await api.updateSale(record._id, {
+        batteryModel: editModel.trim(),
         quantity: qty,
         customerName: editCustomer.trim() || '',
         notes: editNotes.trim() || ''

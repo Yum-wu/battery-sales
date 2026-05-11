@@ -2,6 +2,40 @@
   padding: 0 20rpx 20rpx;
 }
 
+/* 角色标识 */
+.scope-hint {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 20rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  margin: 20rpx 0 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.role-badge {
+  font-size: 24rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
+  margin-right: 16rpx;
+}
+
+.role-badge.boss {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.role-badge.salesperson {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.scope-label {
+  font-size: 26rpx;
+  color: #666;
+}
+
 .filters {
   background: #fff;
   padding: 20rpx;
@@ -80,6 +114,7 @@
 .model-A { background: #f0fdf4; color: #07c160; }
 .model-B { background: #eff6ff; color: #3b82f6; }
 .model-C { background: #fef3c7; color: #d97706; }
+.model-other { background: #f3e8ff; color: #7c3aed; }
 
 .card-body {
   display: flex;

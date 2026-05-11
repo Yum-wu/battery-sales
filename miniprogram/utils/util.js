@@ -41,8 +41,9 @@ const MODEL_OPTIONS = [
 ];
 
 function getModelLabel(value) {
-  const m = MODEL_OPTIONS.find(x => x.value === value);
-  return m ? m.label : value;
+  // 预设型号映射
+  const map = { A: 'A型', B: 'B型', C: 'C型' };
+  return map[value] || value;
 }
 
 module.exports = {

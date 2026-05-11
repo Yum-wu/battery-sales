@@ -13,11 +13,15 @@
       </view>
       <view class="detail-row">
         <text class="label">型号</text>
-        <text class="value model-{{record.batteryModel}}">{{record._modelLabel}}</text>
+        <text class="value {{record._modelClass}}">{{record._modelLabel}}</text>
       </view>
 
       <!-- 编辑模式 -->
       <block wx:if="{{editing}}">
+        <view class="detail-row">
+          <text class="label">型号</text>
+          <input class="edit-input" value="{{editModel}}" bindinput="onModelInput" />
+        </view>
         <view class="detail-row">
           <text class="label">数量</text>
           <input class="edit-input" type="number" value="{{editQuantity}}" bindinput="onQtyInput" />
@@ -53,6 +57,10 @@
       </block>
 
       <view class="detail-row">
+        <text class="label">登记人</text>
+        <text class="value">{{record._salespersonName}}</text>
+      </view>
+      <view class="detail-row">
         <text class="label">来源</text>
         <text class="value source-{{record.source}}">{{record.source === 'wechat' ? '微信' : 'API'}}</text>
       </view>
@@ -66,12 +74,18 @@
       </view>
     </view>
 
-    <!-- 操作按钮 -->
-    <view class="actions">
+    <!-- 老板角色标识 -->
+    <view wx:if="{{canEdit && !editing}}" class="role-hint boss-hint">🛠️ 老板模式 · 可编辑/删除</view>
+
+    <!-- 操作按钮（仅老板可见） -->
+    <view wx:if="{{canEdit}}" class="actions">
       <button wx:if="{{!editing}}" class="action-btn edit" bindtap="toggleEdit">编辑</button>
       <button wx:if="{{editing}}" class="action-btn save" bindtap="saveEdit">保存修改</button>
       <button wx:if="{{editing}}" class="action-btn cancel" bindtap="toggleEdit">取消</button>
       <button wx:if="{{!editing}}" class="action-btn delete" bindtap="deleteRecord">删除记录</button>
     </view>
+
+    <!-- 销售员提示（无权限） -->
+    <view wx:if="{{!canEdit && !editing}}" class="role-hint sales-hint">🔍 你只能查看，如需修改请联系老板</view>
   </view>
 </view>

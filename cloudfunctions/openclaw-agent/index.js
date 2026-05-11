@@ -1,4 +1,5 @@
 const tcb = require('@cloudbase/node-sdk');
+const https = require('https');
 
 // ============================================================
 // 电池销售助手 — OpenClaw Intelligent Agent
@@ -8,7 +9,7 @@ const tcb = require('@cloudbase/node-sdk');
 const CLOUDBASE_ENV =
   process.env.TCB_ENV_ID ||
   process.env.CLOUDBASE_ENV_ID ||
-  'your-cloudbase-env-id'; // ← 部署前替换为你的 envId
+  'hermes-d7gvpvoah15874de5'; // 环境 ID
 
 const app = tcb.init({ env: CLOUDBASE_ENV });
 const db = app.database();
@@ -28,21 +29,22 @@ const CORS = {
 // AI 系统提示词
 // ============================================================
 
-function buildSystemPrompt() {
+function buildSystemPrompt(userRole) {
   const today = new Date();
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
   const dayOfWeek = weekdays[today.getDay()];
 
+  const isBoss = userRole === 'boss';
   return `你叫"小电"，是一个电池销售助手。当前日期：${dateStr}（周${dayOfWeek}）。
 
 用户是农村电池销售人员，文化程度不高，喜欢用语音说话。你回答要用大白话，简短亲切，不要用专业术语。
+当前用户身份：${isBoss ? '老板' : '销售员'}。${isBoss ? '你有删除和修改记录的权限。' : '你只能新增和查看记录，不能删除或修改。要删除/修改请联系老板。'}
 
 --- 电池型号 ---
-三种型号，每块提成都是 ${COMMISSION_PER} 元：
-- A型 — 普通型电池
-- B型 — 加强型电池
-- C型 — 豪华型电池
+电池型号可以是任何名字，不限于特定类型。用户说啥型号就是啥型号。
+每块提成统一 ${COMMISSION_PER} 元。
+常见的有 A型、B型、C型，但也可能是其他名字如"12V20A"、"电动车专用"等。
 
 --- 你的任务 ---
 理解用户想做什么，返回严格 JSON 格式。不要输出任何其他文字，只输出 JSON。
@@ -58,8 +60,10 @@ function buildSystemPrompt() {
 --- 可用操作 ---
 
 1. createSale — 卖电池了！要记账
-   data: { "batteryModel": "A或B或C", "quantity": 数字, "customerName": "客户名(可选)", "notes": "备注(可选)" }
+   data: { "batteryModel": "型号名", "quantity": 数字, "customerName": "客户名(可选)", "notes": "备注(可选)" }
+   batteryModel 填用户说的型号名字，如"A"、"B型"、"12V20A"、"电动车专用"等。
    例：用户说"卖了3块A电池给张三" → { "type": "createSale", "data": { "batteryModel": "A", "quantity": 3, "customerName": "张三" } }
+   例：用户说"卖了2个12V20A的给李四" → { "type": "createSale", "data": { "batteryModel": "12V20A", "quantity": 2, "customerName": "李四" } }
 
 2. queryDailyReport — 查看某天的报表
    data: { "date": "2024-01-15" }
@@ -80,13 +84,21 @@ function buildSystemPrompt() {
 6. queryStats — 查总统计概览
    data: {}
 
+${isBoss ? `7. deleteSale — 删除某条销售记录（仅老板可用）
+   data: { "serialNumber": 编号 }
+   用户说"删掉某某的"、"把xx那条删了" → AI 先查客户找到对应编号再删除
+
+8. updateSale — 修改某条销售记录（仅老板可用）
+   data: { "serialNumber": 编号, "batteryModel": "新型号(可选)", "quantity": 新数量(可选), "customerName": "新客户名(可选)", "notes": "新备注(可选)" }
+   用户说"改成"、"修改"、"把xx那条改一下" → AI 先查记录再修改` : ''}
+
 --- 注意事项 ---
 - 用户说"查账"、"看看报表"、"多少钱"、"算算工资" → 优先用 queryStats
 - 用户说"今天"、"昨天"、"前天"、"明天" → 计算出具体日期用于 queryDailyReport
 - 用户说"周报"、"这周"、"上周" → 计算出具体周一起始日期
 - 用户说"月报"、"这个月" → 计算出具体年月
 - 数量一定要是正整数
-- 型号一定要是 A、B、C 之一
+- 型号按用户说的原样填写，不要自己改名字
 - 如果用户说的内容不清楚，reply 里引导用户说清楚`;
 }
 
@@ -94,7 +106,7 @@ function buildSystemPrompt() {
 // 意图识别（调用 AI）
 // ============================================================
 
-async function recognizeIntent(message, history = []) {
+async function recognizeIntent(message, history = [], userRole) {
   const modelProvider = process.env.AI_MODEL_PROVIDER || 'hunyuan-exp';
   const modelName = process.env.AI_MODEL_NAME || 'hunyuan-2.0-instruct-20251111';
 
@@ -105,7 +117,7 @@ async function recognizeIntent(message, history = []) {
 
   const aiModel = ai.createModel(modelProvider);
 
-  const systemPrompt = buildSystemPrompt();
+  const systemPrompt = buildSystemPrompt(userRole);
   const fullPrompt = `${systemPrompt}\n\n用户说：${message}`;
 
   const result = await aiModel.generateText({
@@ -145,12 +157,12 @@ function parseIntentResponse(text) {
 // 动作执行
 // ============================================================
 
-async function executeAction(action) {
+async function executeAction(action, userCtx = {}) {
   if (!action || !action.type || action.type === 'none') return null;
 
   switch (action.type) {
     case 'createSale':
-      return executeCreateSale(action.data);
+      return executeCreateSale(action.data, userCtx);
     case 'queryDailyReport':
       return executeDailyReport(action.data);
     case 'queryWeeklyReport':
@@ -161,6 +173,10 @@ async function executeAction(action) {
       return executeQueryCustomer(action.data);
     case 'queryStats':
       return executeQueryStats();
+    case 'deleteSale':
+      return executeDeleteSale(action.data);
+    case 'updateSale':
+      return executeUpdateSale(action.data);
     default:
       return null;
   }
@@ -168,11 +184,13 @@ async function executeAction(action) {
 
 // --- 记账 ---
 
-async function executeCreateSale(data) {
+async function executeCreateSale(data, userCtx = {}) {
   const { batteryModel, quantity, customerName, notes } = data;
+  const _openid = userCtx._openid || '';
+  const _nickName = userCtx._nickName || '';
 
-  if (!batteryModel || !['A', 'B', 'C'].includes(batteryModel)) {
-    return { reply: '型号不对哦，请问是 A型、B型 还是 C型 呢？', table: null };
+  if (!batteryModel) {
+    return { reply: '型号不对哦，请问卖的是什么型号呢？', table: null };
   }
   const qty = parseInt(quantity);
   if (!qty || qty <= 0) {
@@ -191,6 +209,8 @@ async function executeCreateSale(data) {
     totalCommission,
     customerName: customerName || '',
     notes: notes || '',
+    _openid,
+    _nickName,
     source: 'wechat',
     reportTime: now,
     createdAt: now,
@@ -496,6 +516,68 @@ async function executeQueryStats() {
   };
 }
 
+// --- 删除记录 ---
+
+async function executeDeleteSale(data) {
+  const serialNumber = data && data.serialNumber;
+  if (!serialNumber) {
+    return { reply: '请问要删除哪条记录呢？', table: null };
+  }
+
+  const result = await db.collection(COLLECTION)
+    .where({ serialNumber: parseInt(serialNumber) })
+    .get();
+
+  const records = result.data || [];
+  if (records.length === 0) {
+    return { reply: `没有找到编号 ${serialNumber} 的记录`, table: null };
+  }
+
+  await db.collection(COLLECTION).doc(records[0]._id).remove();
+
+  return {
+    reply: `✅ 已删除编号 #${serialNumber} 的记录`,
+    table: null
+  };
+}
+
+// --- 修改记录 ---
+
+async function executeUpdateSale(data) {
+  const serialNumber = data && data.serialNumber;
+  if (!serialNumber) {
+    return { reply: '请问要修改哪条记录呢？', table: null };
+  }
+
+  const result = await db.collection(COLLECTION)
+    .where({ serialNumber: parseInt(serialNumber) })
+    .get();
+
+  const records = result.data || [];
+  if (records.length === 0) {
+    return { reply: `没有找到编号 ${serialNumber} 的记录`, table: null };
+  }
+
+  const updateData = { updatedAt: new Date() };
+  if (data.quantity) {
+    const qty = parseInt(data.quantity);
+    if (qty > 0) {
+      updateData.quantity = qty;
+      updateData.totalCommission = qty * COMMISSION_PER;
+    }
+  }
+  if (data.customerName) updateData.customerName = data.customerName;
+  if (data.notes) updateData.notes = data.notes;
+  if (data.batteryModel) updateData.batteryModel = data.batteryModel;
+
+  await db.collection(COLLECTION).doc(records[0]._id).update(updateData);
+
+  return {
+    reply: `✅ 已修改编号 #${serialNumber} 的记录`,
+    table: null
+  };
+}
+
 // ============================================================
 // 响应构建
 // ============================================================
@@ -535,9 +617,9 @@ function formatDateStr(date) {
 // ============================================================
 
 async function crudCreateSale(body) {
-  const { batteryModel, quantity, customerName, notes } = body;
-  if (!batteryModel || !['A', 'B', 'C'].includes(batteryModel)) {
-    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: '型号必须是 A、B、C 之一' }) };
+  const { batteryModel, quantity, customerName, notes, _openid, _nickName } = body;
+  if (!batteryModel) {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: '请输入电池型号' }) };
   }
   const qty = parseInt(quantity);
   if (!qty || qty <= 0) {
@@ -554,6 +636,8 @@ async function crudCreateSale(body) {
     totalCommission: qty * COMMISSION_PER,
     customerName: customerName || '',
     notes: notes || '',
+    _openid: _openid || '',
+    _nickName: _nickName || '',
     source: 'api',
     reportTime: now,
     createdAt: now,
@@ -576,6 +660,10 @@ async function crudListSales(query) {
   const skip = (page - 1) * limit;
 
   let conditions = {};
+  // 销售员只能看自己的记录
+  if (query._openid && query._role === 'salesperson') {
+    conditions._openid = query._openid;
+  }
   if (query.model) {
     conditions.batteryModel = query.model;
   }
@@ -612,16 +700,24 @@ async function crudListSales(query) {
   };
 }
 
-async function crudGetSale(id) {
+async function crudGetSale(id, query = {}) {
   const result = await db.collection(COLLECTION).doc(id).get();
   const record = result.data && result.data.length > 0 ? result.data[0] : null;
   if (!record) {
     return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: '记录不存在' }) };
   }
+  // 销售员只能查看自己的记录
+  if (query._role === 'salesperson' && record._openid !== query._openid) {
+    return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: '无权查看此记录' }) };
+  }
   return { statusCode: 200, headers: CORS, body: JSON.stringify({ data: record }) };
 }
 
 async function crudUpdateSale(id, body) {
+  // 只有老板可以编辑
+  if (body._role !== 'boss') {
+    return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: '仅老板可编辑记录' }) };
+  }
   const { quantity, customerName, notes } = body;
   if (!id) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: '缺少记录 ID' }) };
@@ -647,7 +743,11 @@ async function crudUpdateSale(id, body) {
   return { statusCode: 200, headers: CORS, body: JSON.stringify({ data: record }) };
 }
 
-async function crudDeleteSale(id) {
+async function crudDeleteSale(id, body = {}) {
+  // 只有老板可以删除
+  if (body._role !== 'boss') {
+    return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: '仅老板可删除记录' }) };
+  }
   if (!id) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: '缺少记录 ID' }) };
   }
@@ -655,8 +755,13 @@ async function crudDeleteSale(id) {
   return { statusCode: 200, headers: CORS, body: JSON.stringify({ data: { deleted: true } }) };
 }
 
-async function crudStats() {
-  const result = await db.collection(COLLECTION).get();
+async function crudStats(query = {}) {
+  let conditions = {};
+  // 销售员只能看自己的数据，老板看全部
+  if (query._openid && query._role === 'salesperson') {
+    conditions._openid = query._openid;
+  }
+  const result = await db.collection(COLLECTION).where(conditions).get();
   const records = result.data || [];
 
   let totalQuantity = 0;
@@ -720,6 +825,58 @@ function serverError(err) {
 }
 
 // ============================================================
+// 微信登录处理
+// ============================================================
+
+async function handleLogin(body) {
+  const { code } = body;
+  if (!code) {
+    return ok({ data: { error: '缺少 code' } }, 400);
+  }
+
+  // 优先走 jscode2session 换取真实 openid
+  const wxAppId = process.env.WECHAT_APPID;
+  const wxSecret = process.env.WECHAT_SECRET;
+
+  if (wxAppId && wxSecret) {
+    try {
+      const openid = await exchangeWeChatCode(code, wxAppId, wxSecret);
+      if (openid) {
+        return ok({ data: { openid, nickName: '用户' } });
+      }
+    } catch (e) {
+      console.error('jscode2session 失败:', e.message);
+    }
+  }
+
+  // 降级：用 code 哈希作为开发用 openid
+  console.warn('WECHAT_APPID/SECRET 未配置，使用降级模式');
+  return ok({ data: { openid: `dev_${code.substring(0, 8)}`, nickName: '开发用户' } });
+}
+
+function exchangeWeChatCode(code, appid, secret) {
+  return new Promise((resolve, reject) => {
+    const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${appid}&secret=${secret}&js_code=${code}&grant_type=authorization_code`;
+    https.get(url, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.openid) {
+            resolve(json.openid);
+          } else {
+            reject(new Error(json.errmsg || 'jscode2session 失败'));
+          }
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', reject);
+  });
+}
+
+// ============================================================
 // 入口
 // ============================================================
 
@@ -751,6 +908,11 @@ exports.main = async (event, context) => {
       return ok({ status: 'healthy', timestamp: new Date().toISOString() });
     }
 
+    // === 微信登录 ===
+    if (httpMethod === 'POST' && path === '/auth/login') {
+      return await handleLogin(body);
+    }
+
     if (httpMethod === 'GET' && path === '/models') {
       return ok({
         available_models: [
@@ -770,11 +932,13 @@ exports.main = async (event, context) => {
         return ok({ success: false, error: '请输入消息' }, 400);
       }
 
-      // 第一步：AI 识别意图
-      const intent = await recognizeIntent(body.message, body.history || []);
-      // 第二步：执行动作
+      // 第一步：AI 识别意图（带上用户角色）
+      const userRole = body._role || 'salesperson';
+      const intent = await recognizeIntent(body.message, body.history || [], userRole);
+      // 第二步：执行动作（带上用户身份）
+      const userCtx = { _openid: body._openid || '', _role: userRole, _nickName: body._nickName || '' };
       const actionResult = intent.action && intent.action.type !== 'none'
-        ? await executeAction(intent.action)
+        ? await executeAction(intent.action, userCtx)
         : null;
       // 第三步：构建响应
       const response = await buildChatResponse(intent, actionResult);
@@ -794,14 +958,14 @@ exports.main = async (event, context) => {
     // /sales/:id
     const { base, id } = parsePath(path);
     if (base === '/sales' && id) {
-      if (httpMethod === 'GET') return await crudGetSale(id);
+      if (httpMethod === 'GET') return await crudGetSale(id, query);
       if (httpMethod === 'PUT') return await crudUpdateSale(id, body);
-      if (httpMethod === 'DELETE') return await crudDeleteSale(id);
+      if (httpMethod === 'DELETE') return await crudDeleteSale(id, body);
     }
 
     // === 统计 ===
     if (httpMethod === 'GET' && path === '/stats') {
-      return await crudStats();
+      return await crudStats(query);
     }
 
     return notFound();

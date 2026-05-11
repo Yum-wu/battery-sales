@@ -1,35 +1,33 @@
 <view class="container">
+  <!-- 角色标识 -->
+  <view class="chat-header">
+    <text class="role-badge {{userRole}}">{{roleName}}</text>
+  </view>
+
   <!-- 消息列表 -->
   <scroll-view class="msg-list" scroll-y scroll-with-animation upper-threshold="50">
-    <view class="msg-item {{msg.role === 'user' ? 'right' : 'left'}}" wx:for="{{messages}}" wx:key="index">
-      <view class="msg-bubble {{msg.role}}">
-        <!-- 文字消息 -->
-        <text class="msg-text">{{msg.text}}</text>
-
-        <!-- 表格区域 -->
-        <view wx:if="{{msg.table}}" class="table-wrap">
-          <view class="table-title">{{msg.table.title}}</view>
-          <view class="table-grid">
-            <!-- 表头 -->
-            <view class="table-row header">
-              <view class="table-cell" wx:for="{{msg.table.headers}}" wx:key="index">{{item}}</view>
-            </view>
-            <!-- 数据行 -->
-            <view class="table-row" wx:for="{{msg.table.rows}}" wx:key="index">
-              <view class="table-cell" wx:for="{{item}}" wx:key="index">{{item}}</view>
-            </view>
-            <!-- 表尾 -->
-            <view wx:if="{{msg.table.footer}}" class="table-row footer">
-              <view class="table-cell" wx:for="{{msg.table.footer}}" wx:key="index">{{item}}</view>
-            </view>
-          </view>
-        </view>
-
-        <text class="msg-time">{{msg.time}}</text>
+    <view wx:for="{{messages}}" wx:for-index="idx" wx:key="idx" class="msg-item {{item.role === 'user' ? 'right' : 'left'}}">
+      <view class="msg-bubble {{item.role}}">
+        <text class="msg-text">{{item.text}}</text>
+        <text class="msg-time">{{item.time}}</text>
       </view>
     </view>
     <view id="msg-end"></view>
   </scroll-view>
+
+  <!-- 快捷功能 -->
+  <view wx:if="{{!sending && suggestions.length > 0}}" class="suggestions">
+    <view
+      class="suggestion-item"
+      wx:for="{{suggestions}}"
+      wx:for-index="idx"
+      wx:key="idx"
+      data-text="{{item.text}}"
+      bindtap="onSuggestion"
+    >
+      <text>{{item.icon}} {{item.text}}</text>
+    </view>
+  </view>
 
   <!-- 输入栏 -->
   <view class="input-bar">
@@ -43,10 +41,10 @@
       disabled="{{sending}}"
     />
     <button
-      class="send-btn {{sending || !input.trim() ? 'disabled' : ''}}"
+      class="send-btn {{canSend ? 'active' : ''}}"
       size="mini"
-      bindtap="send"
-      disabled="{{sending || !input.trim()}}"
+      bind:tap="handleSend"
+      disabled="{{!canSend || sending}}"
     >{{sending ? '...' : '发送'}}</button>
   </view>
 </view>

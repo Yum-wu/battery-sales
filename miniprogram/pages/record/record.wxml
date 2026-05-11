@@ -13,6 +13,13 @@
         <text class="model-desc">{{item.desc}}</text>
       </view>
     </view>
+    <input
+      class="form-input"
+      style="margin-top: 16rpx;"
+      placeholder="或输入其他型号名称（如：12V20A）"
+      value="{{customModel}}"
+      bindinput="onCustomModelInput"
+    />
   </view>
 
   <view class="form-section">
