@@ -49,7 +49,8 @@ battery-sales/
 ## 部署前必改
 
 1. `miniprogram/app.js` — 替换 `apiBaseUrl` 为真实 CloudBase 环境域名
-2. `miniprogram/project.config.json` — 替换 `appid` 为真实微信 AppID，并设 `urlCheck: false`（开发时）
+2. `miniprogram/project.config.example.json` — 复制为 `project.config.json`，填入真实微信 AppID，并设 `urlCheck: false`（开发时）
+   > `project.config.json` 已加入 `.gitignore`，不会提交到仓库，避免 AppID 泄露
 3. `cloudfunctions/openclaw-agent/.env.example` — 按说明配置环境变量
 
 ## 后端
